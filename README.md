@@ -1,0 +1,45 @@
+# Easy Time Tracking
+
+Diese Beispielanwendung liefert eine einfache, aber technisch sinnvolle Zeiterfassung mit:
+
+- automatischer Erkennung von Geräten im WLAN (ARP-Scan),
+- manueller Start/Stop-Erfassung,
+- Tagesansicht der Sessions inkl. Notizen.
+
+## Technik-Stack
+
+- **Backend:** FastAPI
+- **Datenbank:** MySQL
+- **Frontend:** HTML/CSS + Alpine.js + TailwindCSS (CDN)
+
+## Datenmodell
+
+Siehe `schema.sql` für die Tabellen `users` und `sessions`.
+
+## Lokales Setup
+
+1. Datenbank anlegen und Schema importieren.
+2. Umgebung konfigurieren:
+
+```bash
+export DB_HOST=localhost
+export DB_USER=timetracker
+export DB_PASSWORD=timetracker
+export DB_NAME=timetracking
+```
+
+3. Abhängigkeiten installieren:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Server starten:
+
+```bash
+uvicorn app:app --reload
+```
+
+## Auto-Tracking
+
+Die Auto-Tracking-Logik läuft als Hintergrund-Thread und führt regelmäßig `arp-scan --localnet` aus. Wird eine bekannte MAC-Adresse erkannt, startet das System automatisch eine Session. Bei längerer Abwesenheit (Timeout) wird die Session beendet. Falls `arp-scan` nicht installiert ist, bleibt die Funktion deaktiviert und es funktioniert nur die manuelle Erfassung.
