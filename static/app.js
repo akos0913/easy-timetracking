@@ -1,11 +1,11 @@
 function timeTracking() {
   return {
-    selectedUser: "",
     selectedDate: new Date().toISOString().slice(0, 10),
     sessions: [],
     status: "abwesend",
     init() {
       this.loadSessions();
+      this.loadStatus();
     },
     async request(path, payload) {
       const response = await fetch(path, {
@@ -18,26 +18,22 @@ function timeTracking() {
       return response.json();
     },
     async loadStatus() {
-      if (!this.selectedUser) return;
-      const response = await fetch(`/status/${this.selectedUser}`);
+      const response = await fetch("/status");
       const data = await response.json();
       this.status = data.status;
     },
     async startSession() {
-      if (!this.selectedUser) return;
-      await this.request("/start", { user_id: this.selectedUser });
+      await this.request("/start", {});
       await this.loadSessions();
       await this.loadStatus();
     },
     async stopSession() {
-      if (!this.selectedUser) return;
-      await this.request("/stop", { user_id: this.selectedUser });
+      await this.request("/stop", {});
       await this.loadSessions();
       await this.loadStatus();
     },
     async loadSessions() {
       const params = new URLSearchParams();
-      if (this.selectedUser) params.append("user_id", this.selectedUser);
       if (this.selectedDate) params.append("date", this.selectedDate);
       const response = await fetch(`/sessions?${params.toString()}`);
       const data = await response.json();

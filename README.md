@@ -4,7 +4,8 @@ Diese Beispielanwendung liefert eine einfache, aber technisch sinnvolle Zeiterfa
 
 - automatischer Erkennung von Geräten im WLAN (ARP-Scan),
 - manueller Start/Stop-Erfassung,
-- Tagesansicht der Sessions inkl. Notizen.
+- Tagesansicht der Sessions inkl. Notizen,
+- LDAP-Login zur Zuordnung von Mitarbeitern.
 
 ## Technik-Stack
 
@@ -28,13 +29,22 @@ export DB_PASSWORD=timetracker
 export DB_NAME=timetracking
 ```
 
-3. Abhängigkeiten installieren:
+3. LDAP konfigurieren:
+
+```bash
+export LDAP_SERVER=ldap://ldap.example.local
+export LDAP_BASE_DN=dc=example,dc=local
+export LDAP_USER_ATTRIBUTE=uid
+export SESSION_SECRET=change-me
+```
+
+4. Abhängigkeiten installieren:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Server starten:
+5. Server starten:
 
 ```bash
 uvicorn app:app --reload

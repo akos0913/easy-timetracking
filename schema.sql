@@ -1,7 +1,9 @@
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    mac_address VARCHAR(32)
+    ldap_username VARCHAR(100) NOT NULL,
+    mac_address VARCHAR(32),
+    UNIQUE KEY unique_ldap_username (ldap_username)
 );
 
 CREATE TABLE sessions (
