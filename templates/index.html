@@ -25,3 +25,18 @@
     </main>
   </body>
 </html>
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Easy Time Tracking{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h2>Today</h2>
+    <p>Track your time blocks and review your latest activity.</p>
+    <ul>
+      <li>Design review — 1h 15m</li>
+      <li>Client sync — 45m</li>
+      <li>Focus time — 2h 30m</li>
+    </ul>
+  </section>
+{% endblock %}

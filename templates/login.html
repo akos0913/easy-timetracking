@@ -20,3 +20,20 @@
     </main>
   </body>
 </html>
+{% extends "base.html" %}
+
+{% block title %}Log In | Easy Time Tracking{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h2>Welcome back</h2>
+    <p>Please sign in to continue tracking your time.</p>
+    <form>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="you@example.com" />
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="••••••••" />
+      <button type="submit">Log In</button>
+    </form>
+  </section>
+{% endblock %}
