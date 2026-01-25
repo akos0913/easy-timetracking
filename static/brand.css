@@ -9,6 +9,82 @@
   --brand-text: #0f172a;
   --brand-shadow: 0 10px 25px -15px rgba(15, 23, 42, 0.35);
   --brand-ring: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  font-family: var(--font);
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.helper-text {
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+.space-y-8 > * + * {
+  margin-top: 2rem;
+  --brand-primary: #2563eb;
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --radius: 12px;
+  --shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 0.5rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
+a {
+  color: var(--brand-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 .btn-primary,
@@ -52,53 +128,77 @@
   background-color: var(--brand-surface-muted);
   border-color: var(--brand-secondary-hover);
   box-shadow: var(--brand-ring);
+  padding: 0.65rem 1.2rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #fff;
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .input {
   width: 100%;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--brand-border);
-  background-color: #ffffff;
-  color: var(--brand-text);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 0.6rem 0.8rem;
+  border-radius: calc(var(--radius) * 0.75);
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 0.95rem;
+  color: var(--text);
 }
 
 .input:focus {
   outline: none;
   border-color: var(--brand-primary);
-  box-shadow: var(--brand-ring);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .card {
-  background-color: var(--brand-surface);
-  border: 1px solid var(--brand-border);
-  border-radius: 0.75rem;
+  background: #fff;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   padding: 1.5rem;
-  box-shadow: var(--brand-shadow);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid var(--brand-border);
-  border-radius: 0.75rem;
+  background: #fff;
+  border-radius: var(--radius);
   overflow: hidden;
-}
-
-.table thead {
-  background-color: var(--brand-surface-muted);
-  color: var(--brand-text);
-  text-align: left;
+  border: 1px solid var(--border);
 }
 
 .table th,
 .table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--brand-border);
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
 }
 
-.table tbody tr:hover {
-  background-color: #eff6ff;
+.table th {
+  background: #f1f5f9;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
 }
