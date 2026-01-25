@@ -1,89 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Easy Time Tracking</title>
-    <link rel="stylesheet" href="/static/brand.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-    />
-  </head>
-  <body>
-    <div class="min-h-screen">
-      <header class="bg-white border-b border-gray-200">
-        <div class="mx-auto max-w-6xl px-6 py-6 flex items-center justify-between">
-          <div>
-            <h1 class="text-3xl">Dashboard</h1>
-            <p class="text-sm text-gray-500">Track time across projects and teams.</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <button class="btn-secondary" type="button">Export</button>
-            <button class="btn-primary" type="button">New Entry</button>
-          </div>
-        </div>
-      </header>
+{% extends "base.html" %}
 
-      <main class="mx-auto max-w-6xl px-6 py-10 space-y-10">
-        <section class="grid gap-6 md:grid-cols-3">
-          <div class="card">
-            <p class="text-sm text-gray-500">Tracked this week</p>
-            <h2 class="text-3xl mt-2">32h 15m</h2>
-          </div>
-          <div class="card">
-            <p class="text-sm text-gray-500">Active projects</p>
-            <h2 class="text-3xl mt-2">5</h2>
-          </div>
-          <div class="card">
-            <p class="text-sm text-gray-500">Pending approvals</p>
-            <h2 class="text-3xl mt-2">2</h2>
-          </div>
-        </section>
+{% block title %}Dashboard | Easy Time Tracking{% endblock %}
 
-        <section class="card">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl">Recent entries</h2>
-            <button class="btn-secondary" type="button">View all</button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Project</th>
-                  <th>Task</th>
-                  <th>Hours</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Jan 12</td>
-                  <td>Website refresh</td>
-                  <td>Design review</td>
-                  <td>3h 30m</td>
-                  <td>Approved</td>
-                </tr>
-                <tr>
-                  <td>Jan 11</td>
-                  <td>Mobile app</td>
-                  <td>Client sync</td>
-                  <td>2h 15m</td>
-                  <td>Pending</td>
-                </tr>
-                <tr>
-                  <td>Jan 10</td>
-                  <td>Internal tools</td>
-                  <td>QA fixes</td>
-                  <td>4h 20m</td>
-                  <td>Approved</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </div>
-  </body>
-</html>
+{% block content %}
+  <section class="card">
+    <h2>Today</h2>
+    <p>Track your time blocks and review your latest activity.</p>
+    <ul>
+      <li>Design review — 1h 15m</li>
+      <li>Client sync — 45m</li>
+      <li>Focus time — 2h 30m</li>
+    </ul>
+  </section>
+{% endblock %}
