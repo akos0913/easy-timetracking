@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Easy Time Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/brand.css" />
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-10">
+      <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-wide text-slate-500">Welcome back</p>
+          <h1 class="text-3xl font-semibold">Your time overview</h1>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button class="btn-secondary">Export</button>
+          <button class="btn-primary">Log new entry</button>
+        </div>
+      </header>
+
+      <section class="grid gap-6 lg:grid-cols-[2fr,1fr]">
+        <div class="card flex flex-col gap-6">
+          <div class="flex flex-col gap-2">
+            <h2 class="text-xl font-semibold">Today&apos;s entries</h2>
+            <p class="text-sm text-slate-500">Keep track of what you&apos;ve accomplished.</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th>Task</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Website refresh</td>
+                  <td>Homepage hero</td>
+                  <td>2h 15m</td>
+                  <td>In progress</td>
+                </tr>
+                <tr>
+                  <td>Mobile app</td>
+                  <td>Login flow</td>
+                  <td>1h 05m</td>
+                  <td>Review</td>
+                </tr>
+                <tr>
+                  <td>Internal tools</td>
+                  <td>Analytics cleanup</td>
+                  <td>45m</td>
+                  <td>Complete</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="flex flex-col gap-6">
+          <div class="card flex flex-col gap-4">
+            <h2 class="text-lg font-semibold">Start a new timer</h2>
+            <label class="text-sm font-medium text-slate-600" for="project">Project</label>
+            <input class="input" id="project" type="text" placeholder="e.g. Marketing site" />
+            <label class="text-sm font-medium text-slate-600" for="task">Task</label>
+            <input class="input" id="task" type="text" placeholder="e.g. Banner update" />
+            <div class="flex flex-wrap gap-3">
+              <button class="btn-secondary">Save draft</button>
+              <button class="btn-primary">Start timer</button>
+            </div>
+          </div>
+
+          <div class="card flex flex-col gap-3">
+            <h2 class="text-lg font-semibold">Weekly goal</h2>
+            <p class="text-sm text-slate-500">
+              You&apos;re 6 hours away from your 40 hour goal. Keep it up!
+            </p>
+            <button class="btn-secondary">View report</button>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </body>
+</html>

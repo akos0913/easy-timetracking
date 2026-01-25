@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Easy Time Tracking | Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/brand.css" />
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <div class="flex min-h-screen items-center justify-center px-6 py-12">
+      <div class="card w-full max-w-md">
+        <div class="flex flex-col gap-2">
+          <p class="text-sm uppercase tracking-wide text-slate-500">Welcome back</p>
+          <h1 class="text-2xl font-semibold">Sign in to your account</h1>
+        </div>
+        <form class="mt-6 flex flex-col gap-4">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-slate-600" for="email">Email</label>
+            <input class="input" id="email" type="email" placeholder="you@example.com" />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-slate-600" for="password">Password</label>
+            <input class="input" id="password" type="password" placeholder="Enter your password" />
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-600">Forgot your password?</span>
+            <a class="text-slate-600 hover:text-slate-900" href="#">Reset it here</a>
+          </div>
+          <button class="btn-primary" type="submit">Sign in</button>
+          <button class="btn-secondary" type="button">Create an account</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

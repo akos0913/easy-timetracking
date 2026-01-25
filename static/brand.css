@@ -1,0 +1,104 @@
+:root {
+  --brand-primary: #2563eb;
+  --brand-primary-hover: #1d4ed8;
+  --brand-secondary: #64748b;
+  --brand-secondary-hover: #475569;
+  --brand-border: #e2e8f0;
+  --brand-surface: #ffffff;
+  --brand-surface-muted: #f8fafc;
+  --brand-text: #0f172a;
+  --brand-shadow: 0 10px 25px -15px rgba(15, 23, 42, 0.35);
+  --brand-ring: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+    box-shadow 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  box-shadow: var(--brand-ring);
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  border-color: var(--brand-border);
+  color: var(--brand-text);
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background-color: var(--brand-surface-muted);
+  border-color: var(--brand-secondary-hover);
+  box-shadow: var(--brand-ring);
+}
+
+.input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--brand-border);
+  background-color: #ffffff;
+  color: var(--brand-text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--brand-ring);
+}
+
+.card {
+  background-color: var(--brand-surface);
+  border: 1px solid var(--brand-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: var(--brand-shadow);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--brand-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.table thead {
+  background-color: var(--brand-surface-muted);
+  color: var(--brand-text);
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--brand-border);
+}
+
+.table tbody tr:hover {
+  background-color: #eff6ff;
+}
