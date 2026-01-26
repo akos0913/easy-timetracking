@@ -1,65 +1,30 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="de">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Easy Time Tracking{% endblock %}</title>
-    <style>
-      :root {
-        color-scheme: light;
-        --neutral-50: #f9fafb;
-        --neutral-200: #e5e7eb;
-        --neutral-600: #4b5563;
-        --neutral-900: #111827;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-        background: var(--neutral-50);
-        color: var(--neutral-900);
-      }
-
-      header {
-        background: #ffffff;
-        border-bottom: 1px solid var(--neutral-200);
-        padding: 20px 32px;
-      }
-
-      header h1 {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--neutral-600);
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-      }
-
-      main {
-        max-width: 720px;
-        margin: 0 auto;
-        padding: 40px 24px 64px;
-      }
-
-      .card {
-        background: #ffffff;
-        border: 1px solid var(--neutral-200);
-        border-radius: 12px;
-        padding: 32px;
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-      }
-    </style>
+    <link rel="stylesheet" href="/static/brand.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block head %}{% endblock %}
   </head>
   <body>
-    <header>
-      <h1>Easy Time Tracking</h1>
-    </header>
-    <main>
-      {% block content %}{% endblock %}
-    </main>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="app-container flex items-center justify-between py-4">
+          <div>
+            <p class="app-header-title">Easy Time Tracking</p>
+            <p class="helper-text">Interne Zeiterfassung</p>
+          </div>
+          {% block header_actions %}{% endblock %}
+        </div>
+      </header>
+      <main class="app-container">
+        <div class="card">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
+    {% block scripts %}{% endblock %}
   </body>
 </html>
