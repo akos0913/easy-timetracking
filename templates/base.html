@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Easy Time Tracking{% endblock %}</title>
+    <link rel="stylesheet" href="/static/brand.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="app-container flex items-center justify-between py-4">
+          <div>
+            <p class="app-header-title">Easy Time Tracking</p>
+            <p class="helper-text">Interne Zeiterfassung</p>
+          </div>
+          {% block header_actions %}{% endblock %}
+        </div>
+      </header>
+      <main class="app-container">
+        <div class="card">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
