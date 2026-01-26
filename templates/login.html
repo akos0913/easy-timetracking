@@ -3,7 +3,7 @@
 {% block title %}Login - Easy Time Tracking{% endblock %}
 
 {% block content %}
-  <div class="max-w-md mx-auto stack">
+  <div class="stack narrow">
     <div>
       <h1 class="h1">LDAP Login</h1>
       <p class="hint">
@@ -11,7 +11,7 @@
       </p>
     </div>
     {% if error %}
-    <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+    <div class="alert alert-danger">
       {{ error }}
     </div>
     {% endif %}
@@ -24,7 +24,7 @@
         <label class="label" for="password">Passwort</label>
         <input id="password" name="password" type="password" required class="input" />
       </div>
-      <button type="submit" class="btn btn-primary w-full">Anmelden</button>
+      <button type="submit" class="btn btn-primary btn-block">Anmelden</button>
     </form>
   </div>
 {% endblock %}

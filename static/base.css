@@ -41,6 +41,7 @@ a {
   padding: 1rem 1.75rem;
   max-width: 1280px;
   margin: 0 auto;
+  flex-wrap: wrap;
 }
 
 .topbar-brand {
@@ -142,6 +143,10 @@ textarea {
   transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
 }
 
+.btn-block {
+  width: 100%;
+}
+
 .btn-primary {
   background: var(--brand-accent);
   color: #ffffff;
@@ -195,6 +200,10 @@ textarea {
   background: #f8fafc;
 }
 
+.table-wrap {
+  overflow-x: auto;
+}
+
 .stack {
   display: flex;
   flex-direction: column;
@@ -206,11 +215,16 @@ textarea {
   gap: 1rem;
 }
 
+.row-align {
+  align-items: center;
+}
+
 .row-between {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .badge {
@@ -222,4 +236,47 @@ textarea {
   font-weight: 600;
   color: var(--brand-primary-strong);
   background: #e2e8f0;
+}
+
+.narrow {
+  max-width: 26rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.form-row-compact {
+  max-width: 14rem;
+  width: 100%;
+}
+
+.table-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.alert {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+.alert-danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+@media (min-width: 768px) {
+  .table-note {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar-meta {
+    width: 100%;
+  }
 }
