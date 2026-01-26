@@ -1,6 +1,156 @@
 /* =========================================
    Landeron – Industrial UI Brand Tokens
    ========================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.page-title {
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+}
+
+.section-title {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.helper-text {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.app-container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+}
+
+.card + .card {
+  margin-top: 1.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.55rem 1.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--brand-primary-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  color: var(--brand-primary);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.input:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.25);
+  border-color: var(--brand-primary);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead th {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+  color: var(--muted);
+  padding: 0.75rem 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody td {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr:hover {
+  background: #f1f5f9;
+}
+
 :root {
   --brand-primary:#0a2a43;
   --brand-primary-hover:#08304f;
