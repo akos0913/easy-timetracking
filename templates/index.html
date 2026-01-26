@@ -4,43 +4,42 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}
 
-{% block header_actions %}
-  <div class="flex items-center gap-4">
-    <span class="helper-text">Eingeloggt als {{ username }}</span>
-    <form method="post" action="/logout">
-      <button class="btn btn-secondary" type="submit">Logout</button>
-    </form>
-  </div>
-{% endblock %}
-
 {% block content %}
-  <div class="space-y-6" x-data="timeTracking()">
-    <div>
-      <h1 class="page-title">Zeiterfassung</h1>
-      <p class="helper-text mt-2">Status und Tagesübersicht für deine Sessions.</p>
+  <div class="stack" x-data="timeTracking()">
+    <div class="row-between">
+      <div>
+        <h1 class="h1">Zeiterfassung</h1>
+        <p class="hint">Status und Tagesübersicht für deine Sessions.</p>
+      </div>
+      <div class="row items-center">
+        <span class="badge">Eingeloggt als {{ username }}</span>
+        <form method="post" action="/logout">
+          <button class="btn btn-secondary" type="submit">Logout</button>
+        </form>
+      </div>
     </div>
 
-    <section class="card">
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <section class="surface">
+      <div class="row-between">
         <div>
-          <p class="helper-text">Aktueller Status</p>
-          <p class="section-title mt-1" x-text="status"></p>
+          <p class="hint">Aktueller Status</p>
+          <p class="section-title" x-text="status"></p>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="row">
           <button class="btn btn-primary" @click="startSession">Start</button>
-          <button class="btn btn-secondary" @click="stopSession">Stop</button>
+          <button class="btn btn-danger" @click="stopSession">Stop</button>
         </div>
       </div>
     </section>
 
-    <section class="card">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <section class="surface">
+      <div class="row-between">
         <div>
           <h2 class="section-title">Tagesansicht</h2>
-          <p class="helper-text mt-1">Sessions für das gewählte Datum.</p>
+          <p class="hint">Sessions für das gewählte Datum.</p>
         </div>
-        <div class="w-full md:w-56">
-          <label class="block text-sm font-medium mb-2" for="sessionDate">Datum</label>
+        <div class="form-row w-full md:w-56">
+          <label class="label" for="sessionDate">Datum</label>
           <input
             id="sessionDate"
             type="date"

@@ -5,22 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Easy Time Tracking{% endblock %}</title>
     <link rel="stylesheet" href="/static/brand.css" />
+    <link rel="stylesheet" href="/static/base.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     {% block head %}{% endblock %}
   </head>
   <body>
     <div class="app-shell">
-      <header class="app-header">
-        <div class="app-container flex items-center justify-between py-4">
-          <div>
-            <p class="app-header-title">Easy Time Tracking</p>
-            <p class="helper-text">Interne Zeiterfassung</p>
+      <header class="topbar">
+        <div class="topbar-inner">
+          <div class="topbar-brand">
+            <img
+              src="/static/logo-landeron.svg"
+              alt="Landeron Logo"
+              class="topbar-logo"
+            />
+            <div>
+              <div class="topbar-title">LANDERON</div>
+              <div class="topbar-subtitle">Time Tracking System</div>
+            </div>
           </div>
-          {% block header_actions %}{% endblock %}
+          <div class="topbar-meta">Internal System</div>
         </div>
       </header>
-      <main class="app-container">
-        <div class="card">
+      <main class="container">
+        <div class="surface">
           {% block content %}{% endblock %}
         </div>
       </main>

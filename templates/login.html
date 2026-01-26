@@ -2,15 +2,11 @@
 
 {% block title %}Login - Easy Time Tracking{% endblock %}
 
-{% block header_actions %}
-  <span class="helper-text hidden sm:block">Sicherer LDAP-Zugang</span>
-{% endblock %}
-
 {% block content %}
-  <div class="max-w-md mx-auto space-y-6">
+  <div class="max-w-md mx-auto stack">
     <div>
-      <h1 class="page-title">LDAP Login</h1>
-      <p class="helper-text mt-2">
+      <h1 class="h1">LDAP Login</h1>
+      <p class="hint">
         Bitte melde dich mit deinen LDAP-Zugangsdaten an, um deine Zeiten zu erfassen.
       </p>
     </div>
@@ -19,13 +15,13 @@
       {{ error }}
     </div>
     {% endif %}
-    <form method="post" action="/login" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-2" for="username">Benutzername</label>
+    <form method="post" action="/login" class="stack">
+      <div class="form-row">
+        <label class="label" for="username">Benutzername</label>
         <input id="username" name="username" type="text" required class="input" />
       </div>
-      <div>
-        <label class="block text-sm font-medium mb-2" for="password">Passwort</label>
+      <div class="form-row">
+        <label class="label" for="password">Passwort</label>
         <input id="password" name="password" type="password" required class="input" />
       </div>
       <button type="submit" class="btn btn-primary w-full">Anmelden</button>
