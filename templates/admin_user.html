@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Benutzer{% endblock %}
+
+{% block topbar_actions %}
+  <a class="btn btn-secondary" href="/admin/users">Zurueck</a>
+  <span class="badge">Admin</span>
+  <span class="badge">{{ username }}</span>
+  <form method="post" action="/logout">
+    <button class="btn btn-secondary" type="submit">Logout</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+  <div class="dashboard">
+    <section class="surface admin-hero">
+      <div>
+        <h1 class="h1">{{ user.name }}</h1>
+        <p class="hint">LDAP: {{ user.ldap_username }}</p>
+      </div>
+      <div class="status-pill">
+        <span class="status-label">Monat</span>
+        <span class="status-value">{{ year }}-{{ month }}</span>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Benutzer bearbeiten</h2>
+        </div>
+        <form method="post" action="/admin/users/{{ user.id }}/update" class="stack">
+          <div class="form-row">
+            <label class="label" for="editName">Name</label>
+            <input id="editName" name="name" type="text" class="input" value="{{ user.name }}" required />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editLdap">LDAP Benutzername</label>
+            <input id="editLdap" name="ldap_username" type="text" class="input" value="{{ user.ldap_username }}" required />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editMac">MAC-Adresse</label>
+            <input id="editMac" name="mac_address" type="text" class="input" value="{{ user.mac_address or '' }}" />
+          </div>
+          <label class="checkbox">
+            <input type="checkbox" name="is_active" value="1" {% if user.is_active %}checked{% endif %} />
+            Benutzer aktiv
+          </label>
+          <button class="btn btn-primary" type="submit">Aenderungen speichern</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Monatsabrechnung</h2>
+          <span class="card-meta">PDF</span>
+        </div>
+        <p class="metric">{{ total_duration }}</p>
+        <p class="hint">Gesamtzeit im ausgewaehlten Monat.</p>
+        <form method="get" action="/admin/users/{{ user.id }}/payroll/pdf" class="form-row">
+          <label class="label" for="monthPicker">Monat</label>
+          <input id="monthPicker" name="month" type="month" class="input" value="{{ year }}-{{ month }}" />
+          <button class="btn btn-secondary" type="submit">PDF oeffnen</button>
+        </form>
+        <div class="divider"></div>
+        <form method="get" action="/admin/users/{{ user.id }}" class="form-row">
+          <label class="label" for="sessionMonth">Sessions anzeigen</label>
+          <input id="sessionMonth" name="month" type="month" class="input" value="{{ year }}-{{ month }}" />
+          <button class="btn btn-secondary" type="submit">Aktualisieren</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="row-between">
+        <div>
+          <h2 class="section-title">Sessions</h2>
+          <p class="hint">Start- und Endzeiten koennen direkt angepasst werden.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap mt-6">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Start</th>
+              <th>Ende</th>
+              <th>Notiz</th>
+              <th>Quelle</th>
+              <th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in sessions %}
+            <tr>
+              <td>
+                <input
+                  type="datetime-local"
+                  name="start_time"
+                  class="input input-sm iso-date"
+                  data-iso="{{ session.start_time }}"
+                  form="session-{{ session.id }}"
+                  required
+                />
+              </td>
+              <td>
+                <input
+                  type="datetime-local"
+                  name="end_time"
+                  class="input input-sm iso-date"
+                  data-iso="{{ session.end_time or '' }}"
+                  form="session-{{ session.id }}"
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  name="note"
+                  class="input input-sm"
+                  value="{{ session.note or '' }}"
+                  form="session-{{ session.id }}"
+                />
+              </td>
+              <td>
+                <span class="status-tag">{{ session.source or '-' }}</span>
+              </td>
+              <td>
+                <form id="session-{{ session.id }}" method="post" action="/admin/sessions/{{ session.id }}/update">
+                  <input type="hidden" name="tz_offset" value="0" class="tz-offset" />
+                  <button class="btn btn-primary btn-sm" type="submit">Speichern</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    const toLocalInput = (iso) => {
+      if (!iso) return "";
+      const date = new Date(iso);
+      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 16);
+    };
+
+    document.querySelectorAll(".iso-date").forEach((input) => {
+      const iso = input.dataset.iso;
+      input.value = toLocalInput(iso);
+    });
+
+    document.querySelectorAll("form").forEach((form) => {
+      const offsetInput = form.querySelector(".tz-offset");
+      if (offsetInput) {
+        offsetInput.value = new Date().getTimezoneOffset();
+      }
+    });
+  </script>
+{% endblock %}

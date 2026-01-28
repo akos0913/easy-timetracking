@@ -4,12 +4,13 @@ from __future__ import annotations
 import datetime as dt
 import subprocess
 import time
-from typing import Iterable, Set
+from typing import Dict, Iterable, Optional, Set
 
 from db import get_connection
 
 SCAN_INTERVAL_SECONDS = 30
 ABSENCE_TIMEOUT_SECONDS = 120
+_ARP_SCAN_FAILURE_LOGGED = False
 
 
 def _parse_arp_scan_output(output: str) -> Set[str]:
@@ -22,10 +23,10 @@ def _parse_arp_scan_output(output: str) -> Set[str]:
     return macs
 
 
-def scan_for_macs() -> Set[str]:
+def scan_for_macs() -> Optional[Set[str]]:
     """Run arp-scan and return discovered MAC addresses.
 
-    If arp-scan is not available, return an empty set and rely on manual tracking.
+    If arp-scan is not available, return None and rely on manual tracking.
     """
     try:
         result = subprocess.run(
@@ -35,7 +36,7 @@ def scan_for_macs() -> Set[str]:
             text=True,
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
-        return set()
+        return None
 
     return _parse_arp_scan_output(result.stdout)
 
@@ -43,7 +44,9 @@ def scan_for_macs() -> Set[str]:
 def _fetch_known_users() -> Iterable[dict]:
     with get_connection() as connection:
         cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT id, mac_address FROM users WHERE mac_address IS NOT NULL")
+        cursor.execute(
+            "SELECT id, mac_address FROM users WHERE mac_address IS NOT NULL AND is_active = 1"
+        )
         return cursor.fetchall()
 
 
@@ -52,7 +55,7 @@ def _start_session_if_needed(user_id: int, now: dt.datetime) -> None:
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
             """
-            SELECT id, start_time, end_time
+            SELECT id
             FROM sessions
             WHERE user_id = %s AND end_time IS NULL
             ORDER BY start_time DESC
@@ -63,8 +66,8 @@ def _start_session_if_needed(user_id: int, now: dt.datetime) -> None:
         active = cursor.fetchone()
         if active is None:
             cursor.execute(
-                "INSERT INTO sessions (user_id, start_time) VALUES (%s, %s)",
-                (user_id, now),
+                "INSERT INTO sessions (user_id, start_time, source) VALUES (%s, %s, %s)",
+                (user_id, now, "auto"),
             )
             connection.commit()
 
@@ -76,36 +79,46 @@ def _end_session_if_needed(user_id: int, now: dt.datetime) -> None:
             """
             SELECT id, start_time
             FROM sessions
-            WHERE user_id = %s AND end_time IS NULL
+            WHERE user_id = %s AND end_time IS NULL AND source = %s
             ORDER BY start_time DESC
             LIMIT 1
             """,
-            (user_id,),
+            (user_id, "auto"),
         )
         active = cursor.fetchone()
         if active is None:
             return
-
-        last_seen = now - dt.timedelta(seconds=ABSENCE_TIMEOUT_SECONDS)
-        if active["start_time"] <= last_seen:
-            cursor.execute(
-                "UPDATE sessions SET end_time = %s WHERE id = %s",
-                (now, active["id"]),
-            )
-            connection.commit()
+        cursor.execute(
+            "UPDATE sessions SET end_time = %s WHERE id = %s",
+            (now, active["id"]),
+        )
+        connection.commit()
 
 
 def run_auto_tracking_loop() -> None:
     """Continuously scan the network and manage sessions based on presence."""
+    global _ARP_SCAN_FAILURE_LOGGED
+    last_seen_by_user: Dict[int, dt.datetime] = {}
     while True:
         now = dt.datetime.utcnow()
         visible_macs = scan_for_macs()
+        if visible_macs is None:
+            if not _ARP_SCAN_FAILURE_LOGGED:
+                print("arp-scan unavailable; auto-tracking disabled until it succeeds.")
+                _ARP_SCAN_FAILURE_LOGGED = True
+            time.sleep(SCAN_INTERVAL_SECONDS)
+            continue
         users = _fetch_known_users()
 
         for user in users:
             if user["mac_address"] and user["mac_address"].lower() in visible_macs:
+                last_seen_by_user[user["id"]] = now
                 _start_session_if_needed(user["id"], now)
             else:
-                _end_session_if_needed(user["id"], now)
+                last_seen = last_seen_by_user.get(user["id"])
+                if last_seen is None:
+                    continue
+                if now - last_seen >= dt.timedelta(seconds=ABSENCE_TIMEOUT_SECONDS):
+                    _end_session_if_needed(user["id"], now)
 
         time.sleep(SCAN_INTERVAL_SECONDS)

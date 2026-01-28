@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Benutzerverwaltung{% endblock %}
+
+{% block topbar_actions %}
+  <a class="btn btn-secondary" href="/">Zurueck</a>
+  <span class="badge">Admin</span>
+  <span class="badge">{{ username }}</span>
+  <form method="post" action="/logout">
+    <button class="btn btn-secondary" type="submit">Logout</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+  <div class="dashboard">
+    <section class="surface admin-hero">
+      <div>
+        <h1 class="h1">Admin Management</h1>
+        <p class="hint">Benutzer verwalten, Zeiten pruefen und Monatsabrechnungen erstellen.</p>
+      </div>
+      <form method="get" action="/admin/users" class="form-row form-row-compact">
+        <label class="label" for="monthSelect">Monat</label>
+        <input id="monthSelect" name="month" type="month" class="input" value="{{ year }}-{{ month }}" />
+        <button class="btn btn-secondary" type="submit">Anzeigen</button>
+      </form>
+    </section>
+
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Neuen Benutzer anlegen</h2>
+        </div>
+        <form method="post" action="/admin/users/create" class="stack">
+          <div class="form-row">
+            <label class="label" for="createName">Name</label>
+            <input id="createName" name="name" type="text" class="input" required />
+          </div>
+          <div class="form-row">
+            <label class="label" for="createLdap">LDAP Benutzername</label>
+            <input id="createLdap" name="ldap_username" type="text" class="input" required />
+          </div>
+          <div class="form-row">
+            <label class="label" for="createMac">MAC-Adresse (optional)</label>
+            <input id="createMac" name="mac_address" type="text" class="input" />
+          </div>
+          <button class="btn btn-primary" type="submit">Benutzer erstellen</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Uebersicht</h2>
+          <span class="card-meta">Aktueller Monat</span>
+        </div>
+        <div class="metric">{{ total_users }}</div>
+        <p class="hint">{{ active_users }} aktiv, {{ total_users - active_users }} deaktiviert</p>
+        <div class="divider"></div>
+        <p class="hint">
+          Monats-Reports fuer {{ year }}-{{ month }} sind als PDF verfuegbar.
+        </p>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="row-between">
+        <div>
+          <h2 class="section-title">Benutzerliste</h2>
+          <p class="hint">Gesamtzeiten basieren auf dem ausgewaehlten Monat.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap mt-6">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>LDAP</th>
+              <th>MAC</th>
+              <th>Status</th>
+              <th>Monat</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.name }}</td>
+              <td>{{ user.ldap_username }}</td>
+              <td>{{ user.mac_address or '-' }}</td>
+              <td>
+                {% if user.is_active %}
+                  <span class="status-tag status-ok">Aktiv</span>
+                {% else %}
+                  <span class="status-tag status-off">Deaktiviert</span>
+                {% endif %}
+              </td>
+              <td>{{ (user.month_seconds // 3600) }}h {{ '%02d' % ((user.month_seconds % 3600) // 60) }}m</td>
+              <td class="actions">
+                <a class="btn btn-secondary btn-sm" href="/admin/users/{{ user.id }}?month={{ year }}-{{ month }}">Details</a>
+                <a class="btn btn-secondary btn-sm" href="/admin/users/{{ user.id }}/payroll/pdf?month={{ year }}-{{ month }}">PDF</a>
+                <form method="post" action="/admin/users/{{ user.id }}/toggle">
+                  <button class="btn btn-secondary btn-sm" type="submit">
+                    {% if user.is_active %}Deaktivieren{% else %}Aktivieren{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+{% endblock %}

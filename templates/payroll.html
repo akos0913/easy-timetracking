@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll{% endblock %}
+
+{% block topbar_actions %}
+  <span class="badge">{{ username }}</span>
+  <form method="post" action="/logout">
+    <button class="btn btn-secondary" type="submit">Logout</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+  <div class="dashboard">
+    <section class="surface hero">
+      <div>
+        <h1 class="h1">Payroll</h1>
+        <p class="hint">Monatsabrechnung als PDF mit Gesamtzeit.</p>
+      </div>
+      <div class="status-pill">
+        <span class="status-label">Monat</span>
+        <span class="status-value">{{ year }}-{{ month }}</span>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Auswahl</h2>
+          <span class="card-meta">PDF</span>
+        </div>
+        <form method="get" action="/payroll" class="stack">
+          <div class="form-row">
+            <label class="label" for="payrollMonth">Monat</label>
+            <input id="payrollMonth" name="month" type="month" class="input" value="{{ year }}-{{ month }}" />
+          </div>
+          <button class="btn btn-secondary" type="submit">Aktualisieren</button>
+        </form>
+        <div class="divider"></div>
+        <a class="btn btn-primary" href="/payroll/pdf?month={{ year }}-{{ month }}">PDF oeffnen</a>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Gesamtzeit</h2>
+          <span class="card-meta">Monat</span>
+        </div>
+        <div class="metric">{{ total_duration }}</div>
+        <p class="hint">Summe der Sessions im ausgewaehlten Monat.</p>
+      </div>
+    </section>
+  </div>
+{% endblock %}
