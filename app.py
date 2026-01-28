@@ -10,7 +10,8 @@ from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from ldap3 import Connection, Server
+from ldap3 import Connection, NTLM, Server, SIMPLE
+from ldap3.utils.conv import escape_filter_chars
 from starlette.middleware.sessions import SessionMiddleware
 
 from auto_tracking import run_auto_tracking_loop
@@ -47,18 +48,11 @@ templates = Jinja2Templates(directory="templates")
 LDAP_SERVER = os.getenv("LDAP_SERVER", "ldap://ldap.landeron-swiss-movements.com")
 LDAP_BASE_DN = os.getenv("LDAP_BASE_DN", "dc=ldap,dc=landeron-swiss-movements,dc=com")
 LDAP_USER_ATTRIBUTE = os.getenv("LDAP_USER_ATTRIBUTE", "uid")
-LDAP_STARTTLS = _env_bool("LDAP_STARTTLS", False)
-LDAP_USE_SSL = LDAP_SERVER.startswith("ldaps://") or _env_bool("LDAP_USE_SSL", False)
-LDAP_ADMIN_GROUP_DN = os.getenv("LDAP_ADMIN_GROUP_DN", "").strip()
-LDAP_BIND_DN = os.getenv("LDAP_BIND_DN", "uid=root,cn=users,dc=ldap,dc=landeron-swiss-movements,dc=com").strip()
-LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD", "z5gXj%k6s2HvCll7JHi^t^aTd").strip()
-_env_search_base = os.getenv("LDAP_USER_SEARCH_BASE", "").strip()
-if _env_search_base:
-    LDAP_USER_SEARCH_BASE = _env_search_base
-elif LDAP_BIND_DN and "," in LDAP_BIND_DN:
-    LDAP_USER_SEARCH_BASE = LDAP_BIND_DN.split(",", 1)[1]
-else:
-    LDAP_USER_SEARCH_BASE = LDAP_BASE_DN
+LDAP_BIND_DN = os.getenv("LDAP_BIND_DN")
+LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD")
+LDAP_USER_DN_TEMPLATE = os.getenv("LDAP_USER_DN_TEMPLATE")
+LDAP_UPN_SUFFIX = os.getenv("LDAP_UPN_SUFFIX")
+LDAP_AUTHENTICATION = os.getenv("LDAP_AUTHENTICATION", "SIMPLE").upper()
 
 
 def _serialize_session(row: dict) -> dict:
@@ -97,107 +91,100 @@ def _require_admin(request: Request) -> Optional[RedirectResponse]:
     return None
 
 
+def _domain_from_base_dn(base_dn: str) -> Optional[str]:
+    parts = [part.strip() for part in base_dn.split(",") if part.strip()]
+    if not parts:
+        return None
+    domain_parts = []
+    for part in parts:
+        if not part.lower().startswith("dc="):
+            return None
+        domain_parts.append(part.split("=", 1)[1])
+    return ".".join(domain_parts) if domain_parts else None
+
+
+def _build_ldap_bind_candidates(username: str) -> list[str]:
+    candidates = []
+    normalized = username.strip()
+    if normalized:
+        candidates.append(normalized)
+    if LDAP_USER_DN_TEMPLATE and normalized and "=" not in normalized:
+        candidates.append(LDAP_USER_DN_TEMPLATE.format(username=normalized))
+    if normalized and "@" not in normalized and "=" not in normalized:
+        upn_suffix = LDAP_UPN_SUFFIX or _domain_from_base_dn(LDAP_BASE_DN)
+        if upn_suffix:
+            candidates.append(f"{normalized}@{upn_suffix}")
+    if normalized and "=" not in normalized:
+        candidates.append(f"{LDAP_USER_ATTRIBUTE}={normalized},{LDAP_BASE_DN}")
+
+    seen = set()
+    unique_candidates = []
+    for candidate in candidates:
+        if candidate and candidate not in seen:
+            seen.add(candidate)
+            unique_candidates.append(candidate)
+    return unique_candidates
+
+
+def _authentication_strategy(username: str):
+    if LDAP_AUTHENTICATION == "NTLM" or (
+        LDAP_AUTHENTICATION == "AUTO" and "\\" in username
+    ):
+        return NTLM
+    return SIMPLE
+
+
 def _authenticate_with_ldap(username: str, password: str) -> bool:
     if not username or not password:
         return False
 
-    server = Server(LDAP_SERVER, use_ssl=LDAP_USE_SSL)
-    bind_dn = f"{LDAP_USER_ATTRIBUTE}={username},{LDAP_BASE_DN}"
-    alt_bind_dn = f"{LDAP_USER_ATTRIBUTE}={username},{LDAP_USER_SEARCH_BASE}"
-    try:
-        if LDAP_STARTTLS:
-            with Connection(server, user=bind_dn, password=password, auto_bind=False) as conn:
-                conn.open()
-                conn.start_tls()
-                return conn.bind()
-        with Connection(server, user=bind_dn, password=password, auto_bind=True):
-            return True
-    except Exception:
-        pass
-
-    if alt_bind_dn != bind_dn:
+    server = Server(LDAP_SERVER)
+    for bind_dn in _build_ldap_bind_candidates(username):
         try:
-            if LDAP_STARTTLS:
-                with Connection(server, user=alt_bind_dn, password=password, auto_bind=False) as conn:
-                    conn.open()
-                    conn.start_tls()
-                    return conn.bind()
-            with Connection(server, user=alt_bind_dn, password=password, auto_bind=True):
+            with Connection(
+                server,
+                user=bind_dn,
+                password=password,
+                auto_bind=True,
+                authentication=_authentication_strategy(bind_dn),
+            ):
                 return True
         except Exception:
-            pass
-
-    admin_conn = _admin_ldap_connection()
-    if admin_conn is None:
-        return False
-    try:
-        search_filter = f"({LDAP_USER_ATTRIBUTE}={username})"
-        admin_conn.search(
-            search_base=LDAP_USER_SEARCH_BASE,
-            search_filter=search_filter,
-            attributes=["dn"],
-        )
-        if not admin_conn.entries:
+            continue
+    user_dn = _find_ldap_user_dn(server, username)
+    if user_dn:
+        try:
+            with Connection(server, user=user_dn, password=password, auto_bind=True):
+                return True
+        except Exception:
             return False
-        user_dn = admin_conn.entries[0].entry_dn
-    except Exception:
-        return False
-    finally:
-        admin_conn.unbind()
+    return False
 
+
+def _find_ldap_user_dn(server: Server, username: str) -> Optional[str]:
     try:
-        if LDAP_STARTTLS:
-            with Connection(server, user=user_dn, password=password, auto_bind=False) as conn:
-                conn.open()
-                conn.start_tls()
-                return conn.bind()
-        with Connection(server, user=user_dn, password=password, auto_bind=True):
-            return True
-    except Exception:
-        return False
-
-
-def _admin_ldap_connection() -> Optional[Connection]:
-    if not LDAP_BIND_DN or not LDAP_BIND_PASSWORD:
-        return None
-    server = Server(LDAP_SERVER, use_ssl=LDAP_USE_SSL)
-    try:
-        conn = Connection(server, user=LDAP_BIND_DN, password=LDAP_BIND_PASSWORD, auto_bind=False)
-        conn.open()
-        if LDAP_STARTTLS:
-            conn.start_tls()
-        if not conn.bind():
-            conn.unbind()
-            return None
-        return conn
+        if LDAP_BIND_DN:
+            with Connection(
+                server,
+                user=LDAP_BIND_DN,
+                password=LDAP_BIND_PASSWORD or "",
+                auto_bind=True,
+            ) as connection:
+                return _search_for_user_dn(connection, username)
+        with Connection(server, auto_bind=True) as connection:
+            return _search_for_user_dn(connection, username)
     except Exception:
         return None
 
 
-def _is_admin_via_ldap(username: str) -> bool:
-    if not LDAP_ADMIN_GROUP_DN:
-        return False
-    conn = _admin_ldap_connection()
-    if conn is None:
-        return False
-    try:
-        search_filter = f"({LDAP_USER_ATTRIBUTE}={username})"
-        conn.search(
-            search_base=LDAP_BASE_DN,
-            search_filter=search_filter,
-            attributes=["memberOf"],
-        )
-        if not conn.entries:
-            return False
-        entry = conn.entries[0]
-        if "memberOf" not in entry:
-            return False
-        groups = [group.lower() for group in entry.memberOf.values]
-        return LDAP_ADMIN_GROUP_DN.lower() in groups
-    except Exception:
-        return False
-    finally:
-        conn.unbind()
+def _search_for_user_dn(connection: Connection, username: str) -> Optional[str]:
+    escaped_username = escape_filter_chars(username)
+    search_filter = f"({LDAP_USER_ATTRIBUTE}={escaped_username})"
+    if not connection.search(LDAP_BASE_DN, search_filter, attributes=["dn"]):
+        return None
+    if not connection.entries:
+        return None
+    return connection.entries[0].entry_dn
 
 
 def _get_user_by_ldap(username: str) -> Optional[dict]:
