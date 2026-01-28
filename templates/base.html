@@ -24,13 +24,22 @@
               <div class="topbar-subtitle">Time Tracking System</div>
             </div>
           </div>
-          <div class="topbar-meta">Internal System</div>
+          <div class="topbar-actions">
+            {% block topbar_actions %}{% endblock %}
+          </div>
         </div>
+        {% if request.session.get('user_id') %}
+        <nav class="nav-bar">
+          <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">Dashboard</a>
+          <a class="nav-link {% if request.url.path.startswith('/payroll') %}active{% endif %}" href="/payroll">Payroll</a>
+          {% if request.session.get('is_admin') %}
+            <a class="nav-link {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin/users">Admin</a>
+          {% endif %}
+        </nav>
+        {% endif %}
       </header>
       <main class="container">
-        <section class="surface">
-          {% block content %}{% endblock %}
-        </section>
+        {% block content %}{% endblock %}
       </main>
     </div>
     {% block scripts %}{% endblock %}

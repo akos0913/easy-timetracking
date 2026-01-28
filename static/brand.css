@@ -1,13 +1,39 @@
 :root {
-  --brand-primary: #1e293b;
-  --brand-primary-strong: #0f172a;
-  --brand-accent: #2563eb;
-  --bg: #f1f5f9;
-  --surface: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
+  /* === Brand Core === */
+  --brand-primary: #181c24;          /* Near-black slate (main UI backbone) */
+  --brand-primary-strong: #9f1239;   /* Landeron red (heritage, emphasis) */
+  --brand-accent: #7f1d1d;           /* Dark industrial red (secondary accent) */
+
+  /* === Backgrounds === */
+  --bg: #f5f6f8;                     /* Clean technical background */
+  --bg-alt: #eceff3;                 /* Panels, table headers */
+  --surface: #ffffff;                /* Cards, modals */
+
+  /* === Text === */
+  --text: #0a0d14;                   /* Maximum readability */
+  --text-secondary: #2f3440;         /* Secondary text */
+  --muted: #6b7280;                  /* Metadata, labels */
+
+  /* === Borders & Structure === */
+  --border: #d1d5db;                 /* Dividers */
+  --border-strong: #9ca3af;          /* Emphasis lines */
+
+  /* === States (no green/blue) === */
+  --success: #14532d;                /* Very dark, muted green (optional) */
+  --warning: #92400e;                /* Tooling / brass tone */
+  --danger: #9f1239;                 /* Same as brand red */
+
+  /* === Geometry === */
   --radius: 10px;
-  --shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+
+  /* === Elevation === */
+  --shadow-sm: 0 1px 2px rgba(10, 13, 20, 0.06);
+  --shadow: 0 6px 18px rgba(10, 13, 20, 0.08);
+  --shadow-lg: 0 16px 40px rgba(10, 13, 20, 0.12);
+
+  /* === Typography === */
   --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
+

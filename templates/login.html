@@ -2,29 +2,44 @@
 
 {% block title %}Login - Easy Time Tracking{% endblock %}
 
+{% block topbar_actions %}
+  <span class="badge">Internal Access</span>
+{% endblock %}
+
 {% block content %}
-  <div class="stack narrow">
-    <div>
-      <h1 class="h1">LDAP Login</h1>
-      <p class="hint">
-        Bitte melde dich mit deinen LDAP-Zugangsdaten an, um deine Zeiten zu erfassen.
-      </p>
-    </div>
-    {% if error %}
-    <div class="alert alert-danger">
-      {{ error }}
-    </div>
-    {% endif %}
-    <form method="post" action="/login" class="stack">
-      <div class="form-row">
-        <label class="label" for="username">Benutzername</label>
-        <input id="username" name="username" type="text" required class="input" />
+  <div class="auth-grid">
+    <section class="surface auth-panel">
+      <div>
+        <h1 class="h1">Landeron Timetracking</h1>
+        <p class="hint">
+          Bitte melde dich mit deinen Zugangsdaten an, um deine Zeiten zu erfassen.
+        </p>
       </div>
-      <div class="form-row">
-        <label class="label" for="password">Passwort</label>
-        <input id="password" name="password" type="password" required class="input" />
+      {% if error %}
+      <div class="alert alert-danger">
+        {{ error }}
       </div>
-      <button type="submit" class="btn btn-primary btn-block">Anmelden</button>
-    </form>
+      {% endif %}
+      <form method="post" action="/login" class="stack">
+        <div class="form-row">
+          <label class="label" for="username">Benutzername</label>
+          <input id="username" name="username" type="text" required class="input" />
+        </div>
+        <div class="form-row">
+          <label class="label" for="password">Passwort</label>
+          <input id="password" name="password" type="password" required class="input" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Anmelden</button>
+      </form>
+    </section>
+    <section class="surface auth-info">
+      <h2 class="section-title">Systemuebersicht</h2>
+      <ul class="info-list">
+        <li>Automatische Praesenz ueber WLAN-Geraete (ARP-Scan)</li>
+        <li>Manuelle Start/Stop-Steuerung fuer Sessions</li>
+        <li>Tagesuebersichten, Notizen und Monatsabrechnung als PDF</li>
+        <li>LDAP-Zugang fuer Mitarbeiter und Admin-Management</li>
+      </ul>
+    </section>
   </div>
 {% endblock %}

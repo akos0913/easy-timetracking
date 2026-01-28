@@ -4,31 +4,80 @@
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}
 
+{% block topbar_actions %}
+  <span class="badge">Eingeloggt als {{ username }}</span>
+  <form method="post" action="/logout">
+    <button class="btn btn-secondary" type="submit">Logout</button>
+  </form>
+{% endblock %}
+
 {% block content %}
-  <div class="stack" x-data="timeTracking()">
-    <div class="row-between">
+  <div class="dashboard" x-data="timeTracking()">
+    <section class="hero surface">
       <div>
         <h1 class="h1">Zeiterfassung</h1>
-        <p class="hint">Status und Tagesübersicht für deine Sessions.</p>
+        <p class="hint">Status, Tagesuebersicht und Lohnabrechnung in einem Blick.</p>
       </div>
-      <div class="row row-align">
-        <span class="badge">Eingeloggt als {{ username }}</span>
-        <form method="post" action="/logout">
-          <button class="btn btn-secondary" type="submit">Logout</button>
-        </form>
+      <div class="status-pill">
+        <span class="status-label">Status</span>
+        <span class="status-value" x-text="status"></span>
       </div>
-    </div>
+    </section>
 
-    <section class="surface">
-      <div class="row-between">
-        <div>
-          <p class="hint">Aktueller Status</p>
-          <p class="section-title" x-text="status"></p>
+    <section class="grid-3">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Heute gesamt</h2>
+          <span class="card-meta">Laufend aktualisiert</span>
         </div>
+        <div class="widget">
+          <div class="widget-title">Gesamtzeit heute</div>
+          <div class="metric" x-text="todayTotalLabel()"></div>
+          <div class="widget-subtitle">Inklusive laufender Session</div>
+        </div>
+        <div class="divider"></div>
+        <template x-if="activeSession">
+          <div class="note-block">
+            <label class="label">Notiz zur aktiven Session</label>
+            <div class="note-inline">
+              <input
+                type="text"
+                class="input"
+                placeholder="Kurze Notiz"
+                x-model="activeSession.note"
+              />
+              <button class="btn btn-primary" @click="saveActiveNote">Speichern</button>
+            </div>
+          </div>
+        </template>
+        <template x-if="!activeSession">
+          <p class="hint">Keine aktive Session heute.</p>
+        </template>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Manuelle Kontrolle</h2>
+          <span class="card-meta">Start/Stop</span>
+        </div>
+        <p class="hint">Session jetzt starten oder beenden.</p>
         <div class="row">
           <button class="btn btn-primary" @click="startSession">Start</button>
           <button class="btn btn-danger" @click="stopSession">Stop</button>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Lohnabrechnung</h2>
+          <span class="card-meta">PDF herunterladen</span>
+        </div>
+        <p class="hint">PDF fuer den ausgewaehlten Monat.</p>
+        <div class="form-row">
+          <label class="label" for="payrollMonth">Monat</label>
+          <input id="payrollMonth" type="month" class="input" x-model="payrollMonth" />
+        </div>
+        <a class="btn btn-secondary mt-4" :href="`/payroll/pdf?month=${payrollMonth}`">PDF oeffnen</a>
       </div>
     </section>
 
@@ -36,7 +85,7 @@
       <div class="row-between">
         <div>
           <h2 class="section-title">Tagesansicht</h2>
-          <p class="hint">Sessions für das gewählte Datum.</p>
+          <p class="hint">Sessions fuer das gewaehlte Datum.</p>
         </div>
         <div class="form-row form-row-compact">
           <label class="label" for="sessionDate">Datum</label>
@@ -63,13 +112,13 @@
             <template x-for="session in sessions" :key="session.id">
               <tr>
                 <td x-text="formatDate(session.start_time)"></td>
-                <td x-text="session.end_time ? formatDate(session.end_time) : 'läuft'"></td>
+                <td x-text="session.end_time ? formatDate(session.end_time) : 'laeuft'"></td>
                 <td>
                   <div class="table-note">
                     <input
                       type="text"
                       class="input"
-                      placeholder="Notiz hinzufügen"
+                      placeholder="Notiz hinzufuegen"
                       x-model="session.note"
                     />
                     <button class="btn btn-primary" @click="saveNote(session)">Speichern</button>
