@@ -35,6 +35,8 @@ export DB_NAME=timetracking
 export LDAP_SERVER=ldap://ldap.example.local
 export LDAP_BASE_DN=dc=example,dc=local
 export LDAP_USER_ATTRIBUTE=uid
+export LDAP_BIND_DN=cn=readonly,dc=example,dc=local
+export LDAP_BIND_PASSWORD=secret
 export SESSION_SECRET=change-me
 ```
 

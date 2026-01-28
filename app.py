@@ -25,6 +25,8 @@ templates = Jinja2Templates(directory="templates")
 LDAP_SERVER = os.getenv("LDAP_SERVER", "ldap://localhost")
 LDAP_BASE_DN = os.getenv("LDAP_BASE_DN", "dc=example,dc=local")
 LDAP_USER_ATTRIBUTE = os.getenv("LDAP_USER_ATTRIBUTE", "uid")
+LDAP_BIND_DN = os.getenv("LDAP_BIND_DN")
+LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD")
 
 
 def _serialize_session(row: dict) -> dict:
@@ -52,17 +54,69 @@ def _require_login(request: Request) -> Optional[RedirectResponse]:
     return None
 
 
+def _build_ldap_bind_candidates(username: str) -> list[str]:
+    candidates = []
+    normalized = username.strip()
+    if normalized:
+        candidates.append(normalized)
+    if normalized and "@" not in normalized and "=" not in normalized:
+        candidates.append(f"{normalized}@{LDAP_BASE_DN.replace('dc=', '').replace(',', '.')}")
+    if normalized and "=" not in normalized:
+        candidates.append(f"{LDAP_USER_ATTRIBUTE}={normalized},{LDAP_BASE_DN}")
+
+    seen = set()
+    unique_candidates = []
+    for candidate in candidates:
+        if candidate and candidate not in seen:
+            seen.add(candidate)
+            unique_candidates.append(candidate)
+    return unique_candidates
+
+
 def _authenticate_with_ldap(username: str, password: str) -> bool:
     if not username or not password:
         return False
 
     server = Server(LDAP_SERVER)
-    bind_dn = f"{LDAP_USER_ATTRIBUTE}={username},{LDAP_BASE_DN}"
+    for bind_dn in _build_ldap_bind_candidates(username):
+        try:
+            with Connection(server, user=bind_dn, password=password, auto_bind=True):
+                return True
+        except Exception:
+            continue
+    user_dn = _find_ldap_user_dn(server, username)
+    if user_dn:
+        try:
+            with Connection(server, user=user_dn, password=password, auto_bind=True):
+                return True
+        except Exception:
+            return False
+    return False
+
+
+def _find_ldap_user_dn(server: Server, username: str) -> Optional[str]:
     try:
-        with Connection(server, user=bind_dn, password=password, auto_bind=True):
-            return True
+        if LDAP_BIND_DN:
+            with Connection(
+                server,
+                user=LDAP_BIND_DN,
+                password=LDAP_BIND_PASSWORD or "",
+                auto_bind=True,
+            ) as connection:
+                return _search_for_user_dn(connection, username)
+        with Connection(server, auto_bind=True) as connection:
+            return _search_for_user_dn(connection, username)
     except Exception:
-        return False
+        return None
+
+
+def _search_for_user_dn(connection: Connection, username: str) -> Optional[str]:
+    search_filter = f"({LDAP_USER_ATTRIBUTE}={username})"
+    if not connection.search(LDAP_BASE_DN, search_filter, attributes=["dn"]):
+        return None
+    if not connection.entries:
+        return None
+    return connection.entries[0].entry_dn
 
 
 def _get_or_create_user(username: str) -> int:
