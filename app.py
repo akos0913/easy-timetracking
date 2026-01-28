@@ -10,7 +10,8 @@ from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from ldap3 import Connection, Server
+from ldap3 import Connection, NTLM, Server, SIMPLE
+from ldap3.utils.conv import escape_filter_chars
 from starlette.middleware.sessions import SessionMiddleware
 
 from auto_tracking import run_auto_tracking_loop
@@ -27,6 +28,9 @@ LDAP_BASE_DN = os.getenv("LDAP_BASE_DN", "dc=example,dc=local")
 LDAP_USER_ATTRIBUTE = os.getenv("LDAP_USER_ATTRIBUTE", "uid")
 LDAP_BIND_DN = os.getenv("LDAP_BIND_DN")
 LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD")
+LDAP_USER_DN_TEMPLATE = os.getenv("LDAP_USER_DN_TEMPLATE")
+LDAP_UPN_SUFFIX = os.getenv("LDAP_UPN_SUFFIX")
+LDAP_AUTHENTICATION = os.getenv("LDAP_AUTHENTICATION", "SIMPLE").upper()
 
 
 def _serialize_session(row: dict) -> dict:
@@ -54,13 +58,29 @@ def _require_login(request: Request) -> Optional[RedirectResponse]:
     return None
 
 
+def _domain_from_base_dn(base_dn: str) -> Optional[str]:
+    parts = [part.strip() for part in base_dn.split(",") if part.strip()]
+    if not parts:
+        return None
+    domain_parts = []
+    for part in parts:
+        if not part.lower().startswith("dc="):
+            return None
+        domain_parts.append(part.split("=", 1)[1])
+    return ".".join(domain_parts) if domain_parts else None
+
+
 def _build_ldap_bind_candidates(username: str) -> list[str]:
     candidates = []
     normalized = username.strip()
     if normalized:
         candidates.append(normalized)
+    if LDAP_USER_DN_TEMPLATE and normalized and "=" not in normalized:
+        candidates.append(LDAP_USER_DN_TEMPLATE.format(username=normalized))
     if normalized and "@" not in normalized and "=" not in normalized:
-        candidates.append(f"{normalized}@{LDAP_BASE_DN.replace('dc=', '').replace(',', '.')}")
+        upn_suffix = LDAP_UPN_SUFFIX or _domain_from_base_dn(LDAP_BASE_DN)
+        if upn_suffix:
+            candidates.append(f"{normalized}@{upn_suffix}")
     if normalized and "=" not in normalized:
         candidates.append(f"{LDAP_USER_ATTRIBUTE}={normalized},{LDAP_BASE_DN}")
 
@@ -73,6 +93,14 @@ def _build_ldap_bind_candidates(username: str) -> list[str]:
     return unique_candidates
 
 
+def _authentication_strategy(username: str):
+    if LDAP_AUTHENTICATION == "NTLM" or (
+        LDAP_AUTHENTICATION == "AUTO" and "\\" in username
+    ):
+        return NTLM
+    return SIMPLE
+
+
 def _authenticate_with_ldap(username: str, password: str) -> bool:
     if not username or not password:
         return False
@@ -80,7 +108,13 @@ def _authenticate_with_ldap(username: str, password: str) -> bool:
     server = Server(LDAP_SERVER)
     for bind_dn in _build_ldap_bind_candidates(username):
         try:
-            with Connection(server, user=bind_dn, password=password, auto_bind=True):
+            with Connection(
+                server,
+                user=bind_dn,
+                password=password,
+                auto_bind=True,
+                authentication=_authentication_strategy(bind_dn),
+            ):
                 return True
         except Exception:
             continue
@@ -111,7 +145,8 @@ def _find_ldap_user_dn(server: Server, username: str) -> Optional[str]:
 
 
 def _search_for_user_dn(connection: Connection, username: str) -> Optional[str]:
-    search_filter = f"({LDAP_USER_ATTRIBUTE}={username})"
+    escaped_username = escape_filter_chars(username)
+    search_filter = f"({LDAP_USER_ATTRIBUTE}={escaped_username})"
     if not connection.search(LDAP_BASE_DN, search_filter, attributes=["dn"]):
         return None
     if not connection.entries:
