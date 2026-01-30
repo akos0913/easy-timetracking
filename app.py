@@ -10,7 +10,7 @@ from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from ldap3 import Connection, NTLM, Server, SIMPLE
+from ldap3 import BASE, Connection, NTLM, Server, SIMPLE
 from ldap3.utils.conv import escape_filter_chars
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -53,6 +53,7 @@ LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD")
 LDAP_USER_DN_TEMPLATE = os.getenv("LDAP_USER_DN_TEMPLATE")
 LDAP_UPN_SUFFIX = os.getenv("LDAP_UPN_SUFFIX")
 LDAP_AUTHENTICATION = os.getenv("LDAP_AUTHENTICATION", "SIMPLE").upper()
+LDAP_ADMIN_GROUP_DN = os.getenv("LDAP_ADMIN_GROUP_DN")
 
 
 def _serialize_session(row: dict) -> dict:
@@ -160,6 +161,42 @@ def _authenticate_with_ldap(username: str, password: str) -> bool:
             return False
     return False
 
+
+def _is_admin_via_ldap(username: str) -> bool:
+    if not LDAP_ADMIN_GROUP_DN:
+        return False
+    server = Server(LDAP_SERVER)
+    user_dn = _find_ldap_user_dn(server, username)
+    if not user_dn:
+        return False
+    search_filter = (
+        f"(|(member={escape_filter_chars(user_dn)})"
+        f"(uniqueMember={escape_filter_chars(user_dn)})"
+        f"(memberUid={escape_filter_chars(username)}))"
+    )
+    try:
+        if LDAP_BIND_DN:
+            with Connection(
+                server,
+                user=LDAP_BIND_DN,
+                password=LDAP_BIND_PASSWORD or "",
+                auto_bind=True,
+            ) as connection:
+                return connection.search(
+                    LDAP_ADMIN_GROUP_DN,
+                    search_filter,
+                    search_scope=BASE,
+                    attributes=["dn"],
+                )
+        with Connection(server, auto_bind=True) as connection:
+            return connection.search(
+                LDAP_ADMIN_GROUP_DN,
+                search_filter,
+                search_scope=BASE,
+                attributes=["dn"],
+            )
+    except Exception:
+        return False
 
 def _find_ldap_user_dn(server: Server, username: str) -> Optional[str]:
     try:
