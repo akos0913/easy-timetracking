@@ -10,7 +10,7 @@ from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from ldap3 import Connection, NTLM, Server, SIMPLE
+from ldap3 import BASE, Connection, NTLM, Server, SIMPLE
 from ldap3.utils.conv import escape_filter_chars
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -53,6 +53,7 @@ LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD")
 LDAP_USER_DN_TEMPLATE = os.getenv("LDAP_USER_DN_TEMPLATE")
 LDAP_UPN_SUFFIX = os.getenv("LDAP_UPN_SUFFIX")
 LDAP_AUTHENTICATION = os.getenv("LDAP_AUTHENTICATION", "SIMPLE").upper()
+LDAP_ADMIN_GROUP_DN = os.getenv("LDAP_ADMIN_GROUP_DN")
 
 
 def _serialize_session(row: dict) -> dict:
@@ -161,6 +162,42 @@ def _authenticate_with_ldap(username: str, password: str) -> bool:
     return False
 
 
+def _is_admin_via_ldap(username: str) -> bool:
+    if not LDAP_ADMIN_GROUP_DN:
+        return False
+    server = Server(LDAP_SERVER)
+    user_dn = _find_ldap_user_dn(server, username)
+    if not user_dn:
+        return False
+    search_filter = (
+        f"(|(member={escape_filter_chars(user_dn)})"
+        f"(uniqueMember={escape_filter_chars(user_dn)})"
+        f"(memberUid={escape_filter_chars(username)}))"
+    )
+    try:
+        if LDAP_BIND_DN:
+            with Connection(
+                server,
+                user=LDAP_BIND_DN,
+                password=LDAP_BIND_PASSWORD or "",
+                auto_bind=True,
+            ) as connection:
+                return connection.search(
+                    LDAP_ADMIN_GROUP_DN,
+                    search_filter,
+                    search_scope=BASE,
+                    attributes=["dn"],
+                )
+        with Connection(server, auto_bind=True) as connection:
+            return connection.search(
+                LDAP_ADMIN_GROUP_DN,
+                search_filter,
+                search_scope=BASE,
+                attributes=["dn"],
+            )
+    except Exception:
+        return False
+
 def _find_ldap_user_dn(server: Server, username: str) -> Optional[str]:
     try:
         if LDAP_BIND_DN:
@@ -192,7 +229,7 @@ def _get_user_by_ldap(username: str) -> Optional[dict]:
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
             """
-            SELECT id, name, ldap_username, mac_address, is_active
+            SELECT id, name, ldap_username, department, role_title, manager_id, mac_address, is_active
             FROM users
             WHERE ldap_username = %s
             """,
@@ -211,7 +248,7 @@ def _create_user(username: str, name: Optional[str] = None) -> dict:
         connection.commit()
         cursor.execute(
             """
-            SELECT id, name, ldap_username, mac_address, is_active
+            SELECT id, name, ldap_username, department, role_title, manager_id, mac_address, is_active
             FROM users
             WHERE id = %s
             """,
@@ -298,19 +335,42 @@ def _parse_datetime_local(value: str, tz_offset: int) -> Optional[dt.datetime]:
         return None
     return local_dt + dt.timedelta(minutes=tz_offset)
 
+def _parse_optional_int(value: Optional[str]) -> Optional[int]:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
 
 def _fetch_user_by_id(user_id: int) -> Optional[dict]:
     with get_connection() as connection:
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
             """
-            SELECT id, name, ldap_username, mac_address, is_active
+            SELECT users.id, users.name, users.ldap_username, users.department, users.role_title,
+                   users.manager_id, managers.name AS manager_name, users.mac_address, users.is_active
             FROM users
+            LEFT JOIN users AS managers ON users.manager_id = managers.id
             WHERE id = %s
             """,
             (user_id,),
         )
         return cursor.fetchone()
+
+def _fetch_manager_options() -> List[dict]:
+    with get_connection() as connection:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT id, name
+            FROM users
+            WHERE is_active = 1
+            ORDER BY name
+            """
+        )
+        return cursor.fetchall()
 
 
 def _fetch_users_with_month_totals(start: dt.datetime, end: dt.datetime) -> List[dict]:
@@ -318,14 +378,17 @@ def _fetch_users_with_month_totals(start: dt.datetime, end: dt.datetime) -> List
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
             """
-            SELECT users.id, users.name, users.ldap_username, users.mac_address, users.is_active,
+            SELECT users.id, users.name, users.ldap_username, users.department, users.role_title,
+                   users.manager_id, managers.name AS manager_name, users.mac_address, users.is_active,
                    COALESCE(SUM(TIMESTAMPDIFF(SECOND, sessions.start_time, COALESCE(sessions.end_time, UTC_TIMESTAMP()))), 0) AS month_seconds
             FROM users
             LEFT JOIN sessions
               ON sessions.user_id = users.id
              AND sessions.start_time >= %s
              AND sessions.start_time < %s
-            GROUP BY users.id, users.name, users.ldap_username, users.mac_address, users.is_active
+            LEFT JOIN users AS managers ON users.manager_id = managers.id
+            GROUP BY users.id, users.name, users.ldap_username, users.department, users.role_title,
+                     users.manager_id, managers.name, users.mac_address, users.is_active
             ORDER BY users.name
             """,
             (start, end),
@@ -654,6 +717,7 @@ def admin_users(request: Request, month: Optional[str] = Query(None)) -> HTMLRes
     year, month_num = parsed if parsed else (now.year, now.month)
     start, end = _month_range(year, month_num)
     users = _fetch_users_with_month_totals(start, end)
+    managers = _fetch_manager_options()
     total_users = len(users)
     active_users = sum(1 for user in users if user["is_active"])
     return templates.TemplateResponse(
@@ -663,6 +727,7 @@ def admin_users(request: Request, month: Optional[str] = Query(None)) -> HTMLRes
             "username": _get_current_username(request),
             "is_admin": _is_admin(request),
             "users": users,
+            "managers": managers,
             "total_users": total_users,
             "active_users": active_users,
             "year": year,
@@ -676,6 +741,9 @@ def admin_create_user(
     request: Request,
     name: str = Form(...),
     ldap_username: str = Form(...),
+    department: Optional[str] = Form(None),
+    role_title: Optional[str] = Form(None),
+    manager_id: Optional[str] = Form(None),
     mac_address: Optional[str] = Form(None),
 ) -> Response:
     redirect = _require_admin(request)
@@ -683,11 +751,15 @@ def admin_create_user(
         return redirect
 
     mac_value = mac_address or None
+    manager_value = _parse_optional_int(manager_id)
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
-            "INSERT INTO users (name, ldap_username, mac_address) VALUES (%s, %s, %s)",
-            (name, ldap_username, mac_value),
+            """
+            INSERT INTO users (name, ldap_username, department, role_title, manager_id, mac_address)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (name, ldap_username, department or None, role_title or None, manager_value, mac_value),
         )
         connection.commit()
     return RedirectResponse(url="/admin/users", status_code=303)
@@ -712,6 +784,9 @@ def admin_update_user(
     user_id: int,
     name: str = Form(...),
     ldap_username: str = Form(...),
+    department: Optional[str] = Form(None),
+    role_title: Optional[str] = Form(None),
+    manager_id: Optional[str] = Form(None),
     mac_address: Optional[str] = Form(None),
     is_active: Optional[str] = Form(None),
 ) -> Response:
@@ -720,15 +795,31 @@ def admin_update_user(
         return redirect
 
     mac_value = mac_address or None
+    manager_value = _parse_optional_int(manager_id)
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
             """
             UPDATE users
-            SET name = %s, ldap_username = %s, mac_address = %s, is_active = %s
+            SET name = %s,
+                ldap_username = %s,
+                department = %s,
+                role_title = %s,
+                manager_id = %s,
+                mac_address = %s,
+                is_active = %s
             WHERE id = %s
             """,
-            (name, ldap_username, mac_value, 1 if is_active else 0, user_id),
+            (
+                name,
+                ldap_username,
+                department or None,
+                role_title or None,
+                manager_value,
+                mac_value,
+                1 if is_active else 0,
+                user_id,
+            ),
         )
         connection.commit()
     return RedirectResponse(url=f"/admin/users/{user_id}", status_code=303)
@@ -744,6 +835,7 @@ def admin_user_detail(request: Request, user_id: int, month: Optional[str] = Que
     if not user:
         return RedirectResponse(url="/admin/users", status_code=303)
 
+    managers = _fetch_manager_options()
     parsed = _parse_month_param(month)
     now = dt.datetime.utcnow()
     year, month_num = parsed if parsed else (now.year, now.month)
@@ -758,6 +850,7 @@ def admin_user_detail(request: Request, user_id: int, month: Optional[str] = Que
             "username": _get_current_username(request),
             "is_admin": _is_admin(request),
             "user": user,
+            "managers": managers,
             "sessions": [_serialize_session(row) for row in sessions],
             "year": year,
             "month": f"{month_num:02d}",

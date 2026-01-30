@@ -40,6 +40,23 @@
             <input id="createLdap" name="ldap_username" type="text" class="input" required />
           </div>
           <div class="form-row">
+            <label class="label" for="createDepartment">Abteilung</label>
+            <input id="createDepartment" name="department" type="text" class="input" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="createRole">Rolle/Titel</label>
+            <input id="createRole" name="role_title" type="text" class="input" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="createManager">Manager</label>
+            <select id="createManager" name="manager_id" class="input">
+              <option value="">Kein Manager</option>
+              {% for manager in managers %}
+                <option value="{{ manager.id }}">{{ manager.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-row">
             <label class="label" for="createMac">MAC-Adresse (optional)</label>
             <input id="createMac" name="mac_address" type="text" class="input" />
           </div>
@@ -75,6 +92,9 @@
             <tr>
               <th>Name</th>
               <th>LDAP</th>
+              <th>Abteilung</th>
+              <th>Rolle</th>
+              <th>Manager</th>
               <th>MAC</th>
               <th>Status</th>
               <th>Monat</th>
@@ -86,6 +106,9 @@
             <tr>
               <td>{{ user.name }}</td>
               <td>{{ user.ldap_username }}</td>
+              <td>{{ user.department or '-' }}</td>
+              <td>{{ user.role_title or '-' }}</td>
+              <td>{{ user.manager_name or '-' }}</td>
               <td>{{ user.mac_address or '-' }}</td>
               <td>
                 {% if user.is_active %}

@@ -39,6 +39,25 @@
             <input id="editLdap" name="ldap_username" type="text" class="input" value="{{ user.ldap_username }}" required />
           </div>
           <div class="form-row">
+            <label class="label" for="editDepartment">Abteilung</label>
+            <input id="editDepartment" name="department" type="text" class="input" value="{{ user.department or '' }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editRole">Rolle/Titel</label>
+            <input id="editRole" name="role_title" type="text" class="input" value="{{ user.role_title or '' }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editManager">Manager</label>
+            <select id="editManager" name="manager_id" class="input">
+              <option value="">Kein Manager</option>
+              {% for manager in managers %}
+                <option value="{{ manager.id }}" {% if user.manager_id == manager.id %}selected{% endif %}>
+                  {{ manager.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-row">
             <label class="label" for="editMac">MAC-Adresse</label>
             <input id="editMac" name="mac_address" type="text" class="input" value="{{ user.mac_address or '' }}" />
           </div>
