@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+from contextlib import contextmanager
 import threading
 from typing import Iterable, List, Optional, Tuple
 
@@ -15,7 +16,7 @@ from ldap3.utils.conv import escape_filter_chars
 from starlette.middleware.sessions import SessionMiddleware
 
 from auto_tracking import run_auto_tracking_loop
-from db import get_connection
+from db import ensure_schema, get_connection
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
@@ -51,9 +52,12 @@ LDAP_USER_ATTRIBUTE = os.getenv("LDAP_USER_ATTRIBUTE", "uid")
 LDAP_BIND_DN = os.getenv("LDAP_BIND_DN")
 LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD")
 LDAP_USER_DN_TEMPLATE = os.getenv("LDAP_USER_DN_TEMPLATE")
+LDAP_USER_SEARCH_BASE = os.getenv("LDAP_USER_SEARCH_BASE")
 LDAP_UPN_SUFFIX = os.getenv("LDAP_UPN_SUFFIX")
 LDAP_AUTHENTICATION = os.getenv("LDAP_AUTHENTICATION", "SIMPLE").upper()
 LDAP_ADMIN_GROUP_DN = os.getenv("LDAP_ADMIN_GROUP_DN")
+LDAP_USE_SSL = _env_bool("LDAP_USE_SSL", LDAP_SERVER.lower().startswith("ldaps://"))
+LDAP_STARTTLS = _env_bool("LDAP_STARTTLS", False)
 
 
 def _serialize_session(row: dict) -> dict:
@@ -107,6 +111,7 @@ def _domain_from_base_dn(base_dn: str) -> Optional[str]:
 def _build_ldap_bind_candidates(username: str) -> list[str]:
     candidates = []
     normalized = username.strip()
+    search_base = LDAP_USER_SEARCH_BASE or LDAP_BASE_DN
     if normalized:
         candidates.append(normalized)
     if LDAP_USER_DN_TEMPLATE and normalized and "=" not in normalized:
@@ -116,7 +121,7 @@ def _build_ldap_bind_candidates(username: str) -> list[str]:
         if upn_suffix:
             candidates.append(f"{normalized}@{upn_suffix}")
     if normalized and "=" not in normalized:
-        candidates.append(f"{LDAP_USER_ATTRIBUTE}={normalized},{LDAP_BASE_DN}")
+        candidates.append(f"{LDAP_USER_ATTRIBUTE}={normalized},{search_base}")
 
     seen = set()
     unique_candidates = []
@@ -135,18 +140,57 @@ def _authentication_strategy(username: str):
     return SIMPLE
 
 
+def _service_account_authentication(bind_dn: Optional[str]):
+    if not bind_dn:
+        return SIMPLE
+    if LDAP_AUTHENTICATION in {"NTLM", "AUTO"} and "\\" in bind_dn:
+        return NTLM
+    return SIMPLE
+
+
+def _ldap_server() -> Server:
+    return Server(LDAP_SERVER, use_ssl=LDAP_USE_SSL)
+
+
+@contextmanager
+def _bound_ldap_connection(
+    server: Server,
+    user: Optional[str] = None,
+    password: Optional[str] = None,
+    authentication: Optional[object] = None,
+) -> Connection:
+    connection = Connection(
+        server,
+        user=user,
+        password=password,
+        authentication=authentication or SIMPLE,
+        auto_bind=False,
+    )
+    try:
+        if LDAP_STARTTLS and not LDAP_USE_SSL:
+            connection.open()
+            connection.start_tls()
+        if not connection.bind():
+            raise RuntimeError("LDAP bind failed")
+        yield connection
+    finally:
+        try:
+            connection.unbind()
+        except Exception:
+            pass
+
+
 def _authenticate_with_ldap(username: str, password: str) -> bool:
     if not username or not password:
         return False
 
-    server = Server(LDAP_SERVER)
+    server = _ldap_server()
     for bind_dn in _build_ldap_bind_candidates(username):
         try:
-            with Connection(
+            with _bound_ldap_connection(
                 server,
                 user=bind_dn,
                 password=password,
-                auto_bind=True,
                 authentication=_authentication_strategy(bind_dn),
             ):
                 return True
@@ -155,7 +199,7 @@ def _authenticate_with_ldap(username: str, password: str) -> bool:
     user_dn = _find_ldap_user_dn(server, username)
     if user_dn:
         try:
-            with Connection(server, user=user_dn, password=password, auto_bind=True):
+            with _bound_ldap_connection(server, user=user_dn, password=password):
                 return True
         except Exception:
             return False
@@ -165,7 +209,7 @@ def _authenticate_with_ldap(username: str, password: str) -> bool:
 def _is_admin_via_ldap(username: str) -> bool:
     if not LDAP_ADMIN_GROUP_DN:
         return False
-    server = Server(LDAP_SERVER)
+    server = _ldap_server()
     user_dn = _find_ldap_user_dn(server, username)
     if not user_dn:
         return False
@@ -176,11 +220,11 @@ def _is_admin_via_ldap(username: str) -> bool:
     )
     try:
         if LDAP_BIND_DN:
-            with Connection(
+            with _bound_ldap_connection(
                 server,
                 user=LDAP_BIND_DN,
                 password=LDAP_BIND_PASSWORD or "",
-                auto_bind=True,
+                authentication=_service_account_authentication(LDAP_BIND_DN),
             ) as connection:
                 return connection.search(
                     LDAP_ADMIN_GROUP_DN,
@@ -188,7 +232,7 @@ def _is_admin_via_ldap(username: str) -> bool:
                     search_scope=BASE,
                     attributes=["dn"],
                 )
-        with Connection(server, auto_bind=True) as connection:
+        with _bound_ldap_connection(server) as connection:
             return connection.search(
                 LDAP_ADMIN_GROUP_DN,
                 search_filter,
@@ -201,14 +245,14 @@ def _is_admin_via_ldap(username: str) -> bool:
 def _find_ldap_user_dn(server: Server, username: str) -> Optional[str]:
     try:
         if LDAP_BIND_DN:
-            with Connection(
+            with _bound_ldap_connection(
                 server,
                 user=LDAP_BIND_DN,
                 password=LDAP_BIND_PASSWORD or "",
-                auto_bind=True,
+                authentication=_service_account_authentication(LDAP_BIND_DN),
             ) as connection:
                 return _search_for_user_dn(connection, username)
-        with Connection(server, auto_bind=True) as connection:
+        with _bound_ldap_connection(server) as connection:
             return _search_for_user_dn(connection, username)
     except Exception:
         return None
@@ -217,7 +261,8 @@ def _find_ldap_user_dn(server: Server, username: str) -> Optional[str]:
 def _search_for_user_dn(connection: Connection, username: str) -> Optional[str]:
     escaped_username = escape_filter_chars(username)
     search_filter = f"({LDAP_USER_ATTRIBUTE}={escaped_username})"
-    if not connection.search(LDAP_BASE_DN, search_filter, attributes=["dn"]):
+    search_base = LDAP_USER_SEARCH_BASE or LDAP_BASE_DN
+    if not connection.search(search_base, search_filter, attributes=["dn"]):
         return None
     if not connection.entries:
         return None
@@ -250,7 +295,7 @@ def _create_user(username: str, name: Optional[str] = None) -> dict:
             """
             SELECT id, name, ldap_username, department, role_title, manager_id, mac_address, is_active
             FROM users
-            WHERE id = %s
+            WHERE users.id = %s
             """,
             (cursor.lastrowid,),
         )
@@ -353,7 +398,7 @@ def _fetch_user_by_id(user_id: int) -> Optional[dict]:
                    users.manager_id, managers.name AS manager_name, users.mac_address, users.is_active
             FROM users
             LEFT JOIN users AS managers ON users.manager_id = managers.id
-            WHERE id = %s
+            WHERE users.id = %s
             """,
             (user_id,),
         )
@@ -443,6 +488,7 @@ def create_user(connection, cursor, username: str) -> int:
 
 @app.on_event("startup")
 def start_auto_tracking() -> None:
+    ensure_schema()
     thread = threading.Thread(target=run_auto_tracking_loop, daemon=True)
     thread.start()
 
