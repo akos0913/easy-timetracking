@@ -11,21 +11,56 @@
 
 {% block content %}
   <div class="dashboard">
-    <section class="surface hero">
-      <div>
-        <h1 class="h1">Payroll</h1>
-        <p class="hint">Monatsabrechnung als PDF mit Gesamtzeit.</p>
+    <section class="surface payroll-sheet">
+      <div class="payroll-header">
+        <div class="payroll-title">
+          <p class="payroll-eyebrow">Payroll Statement</p>
+          <h1 class="h1">Monatsabrechnung</h1>
+          <p class="hint">Offizieller Auszug mit Verdienst, Abzuegen und Nettolohn.</p>
+        </div>
       </div>
-      <div class="status-pill">
-        <span class="status-label">Monat</span>
-        <span class="status-value">{{ year }}-{{ month }}</span>
+      <div class="payroll-divider"></div>
+      <div class="payroll-meta">
+        <div class="payroll-meta-item">
+          <span class="payroll-label">Abrechnungszeitraum</span>
+          <span class="payroll-value">{{ payroll.pay_period_start }} bis {{ payroll.pay_period_end }}</span>
+        </div>
+        <div class="payroll-meta-item">
+          <span class="payroll-label">Auszahlungsdatum</span>
+          <span class="payroll-value">{{ payroll.pay_date }}</span>
+        </div>
+        <div class="payroll-meta-item">
+          <span class="payroll-label">Zahlungsart</span>
+          <span class="payroll-value">{{ payroll.payment_method }}</span>
+        </div>
+        <div class="payroll-meta-item">
+          <span class="payroll-label">Status</span>
+          <span class="payroll-value">{{ payroll.status }}</span>
+        </div>
+      </div>
+      <div class="payroll-info-grid">
+        <div class="payroll-info">
+          <h2 class="section-title">Arbeitgeber</h2>
+          <p class="payroll-info-line">{{ payroll.company_name }}</p>
+          <p class="payroll-info-line">Tax ID: {{ payroll.company_tax_id }}</p>
+          <p class="payroll-info-line">{{ payroll.company_address_line1 }}</p>
+          <p class="payroll-info-line">{{ payroll.company_address_line2 }}</p>
+        </div>
+        <div class="payroll-info">
+          <h2 class="section-title">Mitarbeiter</h2>
+          <p class="payroll-info-line">{{ payroll.employee_name }}</p>
+          <p class="payroll-info-line">ID: {{ payroll.employee_id }}</p>
+          <p class="payroll-info-line">{{ payroll.employee_department }}</p>
+          <p class="payroll-info-line">{{ payroll.employee_role }}</p>
+          <p class="payroll-info-line">Manager: {{ payroll.employee_manager }}</p>
+        </div>
       </div>
     </section>
 
     <section class="grid-2">
       <div class="card">
         <div class="card-header">
-          <h2 class="section-title">Auswahl</h2>
+          <h2 class="section-title">Abrechnung generieren</h2>
           <span class="card-meta">PDF</span>
         </div>
         <form method="get" action="/payroll" class="stack">
@@ -41,11 +76,177 @@
 
       <div class="card">
         <div class="card-header">
-          <h2 class="section-title">Gesamtzeit</h2>
-          <span class="card-meta">Monat</span>
+          <h2 class="section-title">Nettolohn</h2>
+          <span class="card-meta">Auszahlung</span>
         </div>
-        <div class="metric">{{ total_duration }}</div>
-        <p class="hint">Summe der Sessions im ausgewaehlten Monat.</p>
+        <div class="metric">{{ payroll.net_pay }}</div>
+        <p class="hint">Brutto: {{ payroll.gross_pay }} | Abzuege: {{ payroll.total_deductions }}</p>
+        <div class="divider"></div>
+        <div class="payroll-summary">
+          <div class="payroll-summary-row">
+            <span class="payroll-label">Gesamtstunden</span>
+            <span class="payroll-value">{{ payroll.total_hours }}</span>
+          </div>
+          <div class="payroll-summary-row">
+            <span class="payroll-label">Ueberstunden</span>
+            <span class="payroll-value">{{ payroll.overtime_hours }}</span>
+          </div>
+          <div class="payroll-summary-row">
+            <span class="payroll-label">YTD Netto</span>
+            <span class="payroll-value">{{ payroll.ytd_net }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="row-between">
+        <div>
+          <h2 class="section-title">Verdienst</h2>
+          <p class="hint">Aktueller Monat und Year-to-Date Vergleich.</p>
+        </div>
+      </div>
+      <div class="table-wrap mt-6">
+        <table class="table payroll-table">
+          <thead>
+            <tr>
+              <th>Beschreibung</th>
+              <th>Rate</th>
+              <th>Einheit</th>
+              <th>Aktuell</th>
+              <th>YTD</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{% if payroll.pay_type == "salary" %}Monatslohn{% else %}Stundenlohn{% endif %}</td>
+              <td>{% if payroll.pay_type == "salary" %}{{ payroll.salary_monthly }}{% else %}{{ payroll.hourly_rate }}{% endif %}</td>
+              <td>{% if payroll.pay_type == "salary" %}1{% else %}{{ payroll.total_hours }}{% endif %}</td>
+              <td>{{ payroll.base_pay }}</td>
+              <td>{{ payroll.ytd_base_pay }}</td>
+            </tr>
+            <tr>
+              <td>Ueberstunden</td>
+              <td>{{ payroll.overtime_rate }}</td>
+              <td>{{ payroll.overtime_hours }}</td>
+              <td>{{ payroll.overtime_pay }}</td>
+              <td>{{ payroll.ytd_overtime_pay }}</td>
+            </tr>
+            <tr>
+              <td>Bonus</td>
+              <td>-</td>
+              <td>-</td>
+              <td>{{ payroll.bonus_amount }}</td>
+              <td>{{ payroll.ytd_bonus }}</td>
+            </tr>
+            <tr>
+              <td>Zulagen</td>
+              <td>-</td>
+              <td>-</td>
+              <td>{{ payroll.allowance_amount }}</td>
+              <td>{{ payroll.ytd_allowance }}</td>
+            </tr>
+            <tr>
+              <td><strong>Brutto</strong></td>
+              <td></td>
+              <td></td>
+              <td><strong>{{ payroll.gross_pay }}</strong></td>
+              <td><strong>{{ payroll.ytd_gross }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="surface">
+        <div class="row-between">
+          <div>
+            <h2 class="section-title">Abzuege</h2>
+            <p class="hint">Automatische Berechnung gemaess hinterlegter Saetze.</p>
+          </div>
+        </div>
+        <div class="table-wrap mt-6">
+          <table class="table payroll-table">
+            <thead>
+              <tr>
+                <th>Typ</th>
+                <th>Satz</th>
+                <th>Aktuell</th>
+                <th>YTD</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Steuern</td>
+                <td>{{ payroll.tax_rate }}</td>
+                <td>{{ payroll.tax_amount }}</td>
+                <td>{{ payroll.ytd_tax }}</td>
+              </tr>
+              <tr>
+                <td>Sozialabgaben</td>
+                <td>{{ payroll.social_rate }}</td>
+                <td>{{ payroll.social_amount }}</td>
+                <td>{{ payroll.ytd_social }}</td>
+              </tr>
+              <tr>
+                <td>Pension</td>
+                <td>{{ payroll.pension_rate }}</td>
+                <td>{{ payroll.pension_amount }}</td>
+                <td>{{ payroll.ytd_pension }}</td>
+              </tr>
+              <tr>
+                <td>Sonstiges</td>
+                <td>{{ payroll.other_rate }}</td>
+                <td>{{ payroll.other_deduction_amount }}</td>
+                <td>{{ payroll.ytd_other }}</td>
+              </tr>
+              <tr>
+                <td><strong>Summe Abzuege</strong></td>
+                <td></td>
+                <td><strong>{{ payroll.total_deductions }}</strong></td>
+                <td><strong>{{ payroll.ytd_deductions }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="surface">
+        <div class="row-between">
+          <div>
+            <h2 class="section-title">Arbeitgeberbeitraege</h2>
+            <p class="hint">Berechnet als prozentualer Anteil vom Brutto.</p>
+          </div>
+        </div>
+        <div class="table-wrap mt-6">
+          <table class="table payroll-table">
+            <thead>
+              <tr>
+                <th>Typ</th>
+                <th>Satz</th>
+                <th>Aktuell</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Sozialabgaben</td>
+                <td>{{ payroll.employer_social_rate }}</td>
+                <td>{{ payroll.employer_social_amount }}</td>
+              </tr>
+              <tr>
+                <td>Pension</td>
+                <td>{{ payroll.employer_pension_rate }}</td>
+                <td>{{ payroll.employer_pension_amount }}</td>
+              </tr>
+              <tr>
+                <td>Sonstiges</td>
+                <td>{{ payroll.employer_other_rate }}</td>
+                <td>{{ payroll.employer_other_amount }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   </div>

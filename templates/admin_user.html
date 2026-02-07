@@ -24,10 +24,15 @@
       </div>
     </section>
 
+    <div class="admin-subnav">
+      <a class="subnav-link active" href="/admin/users">Benutzer</a>
+      <a class="subnav-link" href="/admin/paychecks?month={{ year }}-{{ month }}">Paychecks</a>
+    </div>
+
     <section class="grid-2">
       <div class="card">
         <div class="card-header">
-          <h2 class="section-title">Benutzer bearbeiten</h2>
+          <h2 class="section-title">Benutzer & Payroll Profil</h2>
         </div>
         <form method="post" action="/admin/users/{{ user.id }}/update" class="stack">
           <div class="form-row">
@@ -65,23 +70,110 @@
             <input type="checkbox" name="is_active" value="1" {% if user.is_active %}checked{% endif %} />
             Benutzer aktiv
           </label>
+          <div class="divider"></div>
+          <h3 class="section-title">Verguetung</h3>
+          <div class="form-row">
+            <label class="label" for="editPayType">Verguetungsmodell</label>
+            <select id="editPayType" name="pay_type" class="input">
+              <option value="hourly" {% if user.pay_type != 'salary' %}selected{% endif %}>Stundenlohn</option>
+              <option value="salary" {% if user.pay_type == 'salary' %}selected{% endif %}>Monatslohn</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="label" for="editHourly">Stundenlohn (CHF)</label>
+            <input id="editHourly" name="hourly_rate" type="number" step="0.01" class="input" value="{{ user.hourly_rate or '' }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editSalary">Monatslohn (CHF)</label>
+            <input id="editSalary" name="salary_monthly" type="number" step="0.01" class="input" value="{{ user.salary_monthly or '' }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editOvertimeMultiplier">Ueberstunden Faktor</label>
+            <input id="editOvertimeMultiplier" name="overtime_multiplier" type="number" step="0.01" class="input" value="{{ user.overtime_multiplier or 1.25 }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editPaymentMethod">Zahlungsart</label>
+            <input id="editPaymentMethod" name="payment_method" type="text" class="input" value="{{ user.payment_method or 'Bank Transfer' }}" />
+          </div>
+          <p class="hint">Saetze als Dezimalwert angeben (z.B. 0.075 = 7.5%).</p>
+          <div class="form-row">
+            <label class="label" for="editTaxRate">Steuersatz</label>
+            <input id="editTaxRate" name="tax_rate" type="number" step="0.0001" class="input" value="{{ user.tax_rate or 0 }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editSocialRate">Sozialabgaben Satz</label>
+            <input id="editSocialRate" name="social_rate" type="number" step="0.0001" class="input" value="{{ user.social_rate or 0 }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editPensionRate">Pension Satz</label>
+            <input id="editPensionRate" name="pension_rate" type="number" step="0.0001" class="input" value="{{ user.pension_rate or 0 }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editOtherRate">Sonstige Abzuege Satz</label>
+            <input id="editOtherRate" name="other_rate" type="number" step="0.0001" class="input" value="{{ user.other_rate or 0 }}" />
+          </div>
+          <div class="divider"></div>
+          <h3 class="section-title">Arbeitgeberbeitraege</h3>
+          <div class="form-row">
+            <label class="label" for="editEmployerSocialRate">Sozialabgaben Satz</label>
+            <input id="editEmployerSocialRate" name="employer_social_rate" type="number" step="0.0001" class="input" value="{{ user.employer_social_rate or 0 }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editEmployerPensionRate">Pension Satz</label>
+            <input id="editEmployerPensionRate" name="employer_pension_rate" type="number" step="0.0001" class="input" value="{{ user.employer_pension_rate or 0 }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="editEmployerOtherRate">Sonstige Satz</label>
+            <input id="editEmployerOtherRate" name="employer_other_rate" type="number" step="0.0001" class="input" value="{{ user.employer_other_rate or 0 }}" />
+          </div>
           <button class="btn btn-primary" type="submit">Aenderungen speichern</button>
         </form>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <h2 class="section-title">Monatsabrechnung</h2>
-          <span class="card-meta">PDF</span>
+          <h2 class="section-title">Paycheck</h2>
+          <span class="card-meta">{{ year }}-{{ month }}</span>
         </div>
-        <p class="metric">{{ total_duration }}</p>
-        <p class="hint">Gesamtzeit im ausgewaehlten Monat.</p>
+        <p class="metric">{{ payroll.net_pay }}</p>
+        <p class="hint">Brutto: {{ payroll.gross_pay }} | Abzuege: {{ payroll.total_deductions }}</p>
+        <div class="divider"></div>
+        <form method="post" action="/admin/users/{{ user.id }}/paycheck" class="stack">
+          <div class="form-row">
+            <label class="label" for="paycheckMonth">Monat</label>
+            <input id="paycheckMonth" name="month" type="month" class="input" value="{{ year }}-{{ month }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="overtimeHours">Ueberstunden (h)</label>
+            <input id="overtimeHours" name="overtime_hours" type="number" step="0.01" class="input" value="{{ paycheck_form.overtime_hours }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="bonusAmount">Bonus (CHF)</label>
+            <input id="bonusAmount" name="bonus_amount" type="number" step="0.01" class="input" value="{{ paycheck_form.bonus_amount }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="allowanceAmount">Zulagen (CHF)</label>
+            <input id="allowanceAmount" name="allowance_amount" type="number" step="0.01" class="input" value="{{ paycheck_form.allowance_amount }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="paycheckMethod">Zahlungsart</label>
+            <input id="paycheckMethod" name="payment_method" type="text" class="input" value="{{ paycheck_form.payment_method }}" />
+          </div>
+          <div class="form-row">
+            <label class="label" for="paycheckStatus">Status</label>
+            <select id="paycheckStatus" name="status" class="input">
+              <option value="draft" {% if paycheck_form.status != 'final' %}selected{% endif %}>Draft</option>
+              <option value="final" {% if paycheck_form.status == 'final' %}selected{% endif %}>Final</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">Paycheck speichern</button>
+        </form>
+        <div class="divider"></div>
         <form method="get" action="/admin/users/{{ user.id }}/payroll/pdf" class="form-row">
-          <label class="label" for="monthPicker">Monat</label>
+          <label class="label" for="monthPicker">PDF Monat</label>
           <input id="monthPicker" name="month" type="month" class="input" value="{{ year }}-{{ month }}" />
           <button class="btn btn-secondary" type="submit">PDF oeffnen</button>
         </form>
-        <div class="divider"></div>
         <form method="get" action="/admin/users/{{ user.id }}" class="form-row">
           <label class="label" for="sessionMonth">Sessions anzeigen</label>
           <input id="sessionMonth" name="month" type="month" class="input" value="{{ year }}-{{ month }}" />
